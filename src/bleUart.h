@@ -25,7 +25,7 @@
 #include <BLE2902.h>
 
 #define HOLD_TIME 1500
-#define CONNECTION_ATTEMPT 2
+#define CONNECTION_ATTEMPT 4
 BLEServer *pServer = NULL;
 BLECharacteristic *pTxCharacteristic;
 bool deviceConnected = false;
@@ -33,6 +33,7 @@ bool oldDeviceConnected = false;
 
 // See the following for generating UUIDs:
 // https://www.uuidgenerator.net/
+
 
 #define SERVICE_UUID "6E400001-B5A3-F393-E0A9-E50E24DCCA9E"            // UART service UUID
 #define CHARACTERISTIC_UUID_RX "6E400002-B5A3-F393-E0A9-E50E24DCCA9E"  // receive
@@ -64,9 +65,11 @@ class MyCallbacks : public BLECharacteristicCallbacks {
 };
 
 void bleSetup() {
-  //  Serial.print("UUID: ");
-  //  Serial.println(SERVICE_UUID);
+    Serial.print("UUID: ");
+    Serial.println(SERVICE_UUID);
   // Create the BLE Device
+  char* tempID = readBleID();
+  PTL(tempID);  
   BLEDevice::init(readBleID());  //read BLE device name from EEPROM so it's static
 
   // Create the BLE Server
@@ -121,11 +124,12 @@ void bleLoop() {
     Serial.println("Bluetooth connected!");
     oldDeviceConnected = deviceConnected;
     delay(HOLD_TIME);
-    // for (byte i = 0; i < CONNECTION_ATTEMPT; i++) {// send the keywords a few times on connection so that the app knows it's a Petoi device
-    pTxCharacteristic->setValue("Petoi Bittle");
-    pTxCharacteristic->notify();
-    // delay(100);
-    // }
+    //for (byte i = 0; i < CONNECTION_ATTEMPT; i++) {// send the keywords a few times on connection so that the app knows it's a Petoi device
+      pTxCharacteristic->setValue("Petoi Bittle");
+      //pTxCharacteristic->setValue("Bittle");
+      pTxCharacteristic->notify();
+      //delay(1000);
+    //}
     token = 'd';
     bleWrite(String(T_PAUSE));
   }

@@ -45,6 +45,32 @@
   ===============================================
 */
 
+
+#ifdef M5CORE2 //Core2 uses the MPU6886 instead of the MPU6050
+
+
+#include <M5Core2.h>  //MPU6886 is already included with the M5Core2, so just include header here.
+//#include <utility/MPU6886.h>
+//Below is included to provide definitions for Vectors, Quaternions, etc.  
+//TODO: This could probably be removed and just include necessary definitions in future.
+#include "mpu6050/src/helper_3dmath.h"
+
+// uncomment "OUTPUT_READABLE_YAWPITCHROLL" if you want to see the yaw/
+// pitch/roll angles (in degrees) calculated from the quaternions coming
+// from the FIFO. Note this also requires gravity vector calculations.
+// Also note that yaw/pitch/roll angles suffer from gimbal lock (for
+// more info, see: http://en.wikipedia.org/wiki/Gimbal_lock)
+#define OUTPUT_READABLE_YAWPITCHROLL
+
+// uncomment "OUTPUT_READABLE_REALACCEL" if you want to see acceleration
+// components with gravity removed. This acceleration reference frame is
+// not compensated for orientation, so +X is always +X according to the
+// sensor, just without the effects of gravity. If you want acceleration
+// compensated for orientation, us OUTPUT_READABLE_WORLDACCEL instead.
+//#define OUTPUT_READABLE_REALACCEL
+
+
+#else //BiBoard and BiBoard2 use the MPU6050
 // I2Cdev and MPU6050 must be installed as libraries, or else the .cpp/.h files
 // for both classes must be in the include path of your project
 #include "mpu6050/src/I2Cdev.h"
@@ -126,6 +152,7 @@ MPU6050 mpu;
 // uncomment "OUTPUT_TEAPOT" if you want output that matches the
 // format used for the InvenSense teapot demo
 //#define OUTPUT_TEAPOT
+#endif
 
 // MPU control/status vars
 bool dmpReady = false;  // set true if DMP init was successful
@@ -140,6 +167,7 @@ Quaternion q;           // [w, x, y, z]         quaternion container
 VectorInt16 aa;         // [x, y, z]            accel sensor measurements
 VectorInt16 gy;         // [x, y, z]            gyro sensor measurements
 VectorInt16 aaReal;     // [x, y, z]            gravity-free accel sensor measurements
+VectorInt16 aaReal2;     // [x, y, z]            gravity-free accel sensor measurements
 VectorInt16 aaWorld;    // [x, y, z]            world-frame accel sensor measurements
 VectorFloat gravity;    // [x, y, z]            gravity vector
 float euler[3];         // [psi, theta, phi]    Euler angle container
@@ -196,6 +224,26 @@ void print6Axis() {
   Serial.print("\t");
   Serial.print(ypr[2]);
   Serial.print("\t");
+  
+
+  M5.Lcd.setCursor(170,0);
+  M5.Lcd.print("      ");
+  M5.Lcd.setCursor(170,30);
+  M5.Lcd.print("      ");
+  M5.Lcd.setCursor(170,60);
+  M5.Lcd.print("      ");
+  M5.Lcd.setCursor(100,0);
+  M5.Lcd.print("Yaw: ");
+  M5.Lcd.setCursor(100,30);
+  M5.Lcd.print("Pch: ");
+  M5.Lcd.setCursor(100,60);
+  M5.Lcd.print("Roll");
+  M5.Lcd.setCursor(170,0);
+  M5.Lcd.print(ypr[0]);
+  M5.Lcd.setCursor(170,30);
+  M5.Lcd.print(ypr[1]);
+  M5.Lcd.setCursor(170,60);
+  M5.Lcd.print(ypr[2]);
   /*
     mpu.dmpGetAccel(&aa, fifoBuffer);
     Serial.print("\tRaw Accl XYZ\t");
@@ -234,15 +282,99 @@ void print6Axis() {
   Serial.print("\t");
   Serial.print(aaReal.y);
   Serial.print("\t");
+  Serial.print("areal2\t");
+  Serial.print(aaReal2.x);
+  Serial.print("\t");
+  Serial.print(aaReal2.y);
+  Serial.print("\t");
 #endif
-  Serial.print("areal.z\t");
-  Serial.print(aaReal.z); //becomes negative when flipped
+  Serial.print("areal2.z\t");
+  Serial.print(aaReal2.z); //becomes negative when flipped
   Serial.print("\t");
 
   Serial.println();
 }
 
 bool read_IMU() {
+#ifdef M5CORE2 //uses 6886
+  int16_t accX = 0.0F;  // Define variables for storing inertial sensor data
+  int16_t accY = 0.0F;  //定义存储惯性传感器相关数据的相关变量
+  int16_t accZ = 0.0F;
+
+  float gyroX = 0.0F;
+  float gyroY = 0.0F;
+  float gyroZ = 0.0F;
+
+  float pitch = 0.0F;
+  float roll = 0.0F;
+  float yaw = 0.0F;
+
+  float temp = 0.0F;
+
+  //It appears that gyro is not used??? so do nothing with the gyro data
+  M5.IMU.getGyroData(&gyroX, &gyroY, &gyroZ);
+  //PTL("Core2 Gyro Data");
+  //PTL("\tgyroX\tgyroY\tgyroZ");
+  //PT("\t");
+  //PT(gyroX);
+  //PT("\t");
+  //PT(gyroY);
+  //PT("\t");
+  //PTL(gyroZ);
+  
+
+  //Get the Acceleration data and put into variables
+  M5.IMU.getAccelAdc(&aaReal.x, &aaReal.y, &aaReal.z);  //gets the triaxial accelerometer.
+
+  //PTL("Core2 Accel Data");
+  //PTL("\taccX\taccY\taccZ");
+  //PT("\t");
+  //PT(aaReal.x);
+  //PT("\t");
+  //PT(aaReal.y);
+  //PT("\t");
+  //PTL(aaReal.z);
+  
+
+  //aaReal.x = accX;
+  //aaReal.y = accY;
+  //aaReal.z = accZ;
+
+  //Get the yaw, pitch and roll (TODO: grab directly into ypr variable)
+  //  Should be:
+  //  M5.IMU.getAhrsData(&ypr[0], &ypr[1], &ypr[2]);
+  //  Is this correct???
+  M5.IMU.getAhrsData(&pitch, &roll, &yaw);  //Stores the inertial sensor attitude.
+  ypr[0] = yaw;
+  ypr[1] = -pitch;  //Only pitch is reversed from Bittle
+  ypr[2] = roll;
+
+  
+  //PTL("Core2 YPR Data");
+  //PTL("\tyaw\tpitch\troll");
+  //PT("\t");
+  //PT(yaw);
+  //PT("\t");
+  //PT(pitch);
+  //PT("\t");
+  //PTL(roll);
+
+  
+  
+  //Temperature is not currently used
+  M5.IMU.getTempData(&temp);  //Stores the inertial sensor temperature to temp.
+  //Core2 already has data in degrees, so no conversion required
+  //for (byte i = 0; i < 3; i++) {//no need to flip yaw
+      //ypr[i] *= degPerRad;
+  //}
+
+
+  if (printGyro)
+      print6Axis();
+  exceptions = aaReal.z < 0 && fabs(ypr[2]) > 85; //the second condition is used to filter out some noise
+  return true;
+
+#else //BiBoard or BiBoard2 use 6050
   if (mpu.dmpGetCurrentFIFOPacket(fifoBuffer)) { // Get the Latest packet
     // display Euler angles in degrees
     mpu.dmpGetQuaternion(&q, fifoBuffer);
@@ -252,12 +384,12 @@ bool read_IMU() {
     mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
     mpu.dmpGetLinearAccel(&aaReal, &aa, &gravity);
     mpu.dmpGetLinearAccelInWorld(&aaWorld, &aaReal, &q);
-
     for (byte i = 0; i < 3; i++) {//no need to flip yaw
       ypr[i] *= degPerRad;
 #ifdef BiBoard
       ypr[i] = -ypr[i];
 #endif
+
     }
     if (printGyro)
       print6Axis();
@@ -265,6 +397,7 @@ bool read_IMU() {
     return true;
   }
   return false;
+#endif //not M5CORE2
 }
 
 // ================================================================
@@ -272,6 +405,13 @@ bool read_IMU() {
 // ================================================================
 
 void imuSetup() {
+
+#ifdef M5CORE2
+//Match the setup of the MPU6050
+//M5.IMU.SetGyroFsr((MPU6886::GFS_2000DPS));//set to +/- 250 dps (default is 2000 dps)
+//M5.IMU.SetAccelFsr(MPU6886::AFS_16G);//set to +/- 2g (default is 8g)
+
+#else //not M5CORE2
   // join I2C bus (I2Cdev library doesn't do this automatically)
 #if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
   Wire.begin();
@@ -364,8 +504,12 @@ void imuSetup() {
 
     // set our DMP Ready flag so the main loop() function knows it's okay to use it
     Serial.println(F("- DMP ready! Waiting for the first interrupt..."));
+#endif //Not M5CORE2
+  
     dmpReady = true;
+#ifdef M5CORE2
 
+#else
     // get expected DMP packet size for later comparison
     packetSize = mpu.dmpGetFIFOPacketSize();
   } else {
@@ -377,6 +521,7 @@ void imuSetup() {
     Serial.print(devStatus);
     Serial.println(F(")"));
   }
+#endif //Not M5CORE2
 
   delay(10);
   read_IMU();
@@ -395,3 +540,4 @@ void imuExample() {
   read_IMU();
   print6Axis();
 }
+

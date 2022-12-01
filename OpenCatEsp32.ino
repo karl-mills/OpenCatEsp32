@@ -1,12 +1,16 @@
 //modify the model and board definitions
 //***********************
-#define BITTLE    //Petoi 9 DOF robot dog: 1 on head + 8 on leg
+//#define BITTLE    //Petoi 9 DOF robot dog: 1 on head + 8 on leg
 //#define NYBBLE  //Petoi 11 DOF robot cat: 2 on head + 1 on tail + 8 on leg
 //#define CUB
+#define NOVA
 
-#define BiBoard     //ESP32 Board with 12 channels of built-in PWM for joints
-//#define BiBoard2  //ESP32 Board with 16 channels of PCA9685 PWM for joints
+//#define BiBoard     //ESP32 Board with 12 channels of built-in PWM for joints
+//#define BiBoard2    //ESP32 Board with 16 channels of PCA9685 PWM for joints
+#define M5CORE2       //Use M5 Stack Core2 with 16 channels of PCA9685 PWM for joints, and MPU6886 
 //***********************
+
+
 
 //Send 'R' token to reset the birthmark in the EEPROM so that the robot will restart to reset
 //#define AUTO_INIT  //activate it to automatically reset joint and imu calibration without prompts
@@ -18,10 +22,27 @@
 //#define CAMERA          //for Mu Vision camera
 
 #include "src/OpenCat.h"
+#ifdef M5CORE2
+#include <M5Core2.h>
+#include <EEPROM.h>
+
+#endif
 
 void setup() {
   // put your setup code here, to run once:
+#ifdef M5CORE2 //M5Core2 Serial is set up as part of the M5 initialization
+  //Initialize the M5Core2
+  //M5.begin(LCD Enabled, SD Card Enabled, Serial Enabled, I2C enabled, Power source set to default)
+  M5.begin(true, true, true, true,kMBusModeInput);  //Initialize the M5 Core2 with power input from the external battery
+  //Init IMU sensor.
+  M5.IMU.Init();  
+  Wire1.begin(21,22);
+  M5.Lcd.fillScreen(BLACK);
+  M5.Lcd.setTextColor(WHITE,BLACK);
+  M5.Lcd.setTextSize(2);
+#else //BiBoard or BiBoard2 serial must be started separately
   Serial.begin(115200);//USB serial
+#endif
   Serial.setTimeout(5);
   //  Serial1.begin(115200); //second serial port
   while (Serial.available() && Serial.read()) {
@@ -35,6 +56,8 @@ void setup() {
   PTLF("Nybble");
 #elif defined CUB
   PTLF("Cub");
+#elif defined NOVA
+  PTLF("Nova");
 #endif
   while (Serial.available() && Serial.read()); // empty buffer
   i2cDetect();
@@ -103,7 +126,8 @@ void setup() {
   beep(24, 50);
 
 }
-
+static int env_count=0;
+#define ENV_TRIG_CNT 20
 void loop() {
 #ifdef VOLTAGE
   lowBattery();
@@ -115,7 +139,11 @@ void loop() {
   //
   //  }
   //  //— read environment sensors (low level)
-  readEnvironment();
+  env_count++;
+  if(env_count == ENV_TRIG_CNT){
+    readEnvironment();
+    env_count = 0;
+  }
   readSignal();
   //  readHuman();
 

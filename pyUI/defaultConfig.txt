@@ -1,0 +1,6 @@
+English
+DoF16
+./release
+2.0
+NyBoard_V1_1
+Standard

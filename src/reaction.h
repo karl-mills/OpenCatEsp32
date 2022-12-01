@@ -249,7 +249,7 @@ void reaction() {
               int actualServoIndex = (PWM_NUM == 12 && target[0] > 3) ? target[0] - 4 : target[0];
 #ifdef BiBoard
               servo[actualServoIndex].write(duty);
-#else
+#else //BiBoard2 and M5CORE2
               pwm.writeAngle(actualServoIndex, duty);
 #endif
               //              printRange(DOF);
@@ -270,7 +270,7 @@ void reaction() {
             else if (token == T_SERVO_MICROSECOND) {
 #ifdef BiBoard
               servo[PWM_pin[target[0]]].writeMicroseconds(target[1]);
-#else
+#else  //BiBoard2 and M5CORE2
               pwm.writeMicroseconds(PWM_pin[target[0]], target[1]);
 #endif
             }

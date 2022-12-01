@@ -12,7 +12,7 @@ void calibratedPWM(byte i, float angle, float speedRatio = 0) {
   for (int s = 0; s <= steps; s++) {
 #ifdef BiBoard
     servo[actualServoIndex].write(duty + (steps == 0 ? 0 : (1 + cos(M_PI * s / steps)) / 2 * (duty0 - duty)));
-#else
+#else //BiBoard2 or M5CORE2
     pwm.writeAngle(actualServoIndex, duty + (steps == 0 ? 0 : (1 + cos(M_PI * s / steps)) / 2 * (duty0 - duty)));
 #endif
     //    delayMicroseconds(1);
@@ -36,6 +36,7 @@ template <typename T> void transform( T * target, byte angleDataRatio = 1, float
 
   for (int s = 0; s <= steps; s++) {
     for (byte i = offset; i < DOF; i++) {
+//TODO: determine what needs to happen with below for M5CORE2
 #ifdef BiBoard
       if (WALKING_DOF == 8 && i > 3 && i < 8)
         continue;

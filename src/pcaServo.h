@@ -134,11 +134,11 @@ class Petoi_PWMServoDriver: public Adafruit_PWMServoDriver {
 };
 
 // called this way, it uses the default address 0x40
-Petoi_PWMServoDriver pwm = Petoi_PWMServoDriver();
+//Petoi_PWMServoDriver pwm = Petoi_PWMServoDriver();
 // you can also call it with a different address you want
 //Petoi_PWMServoDriver pwm = Petoi_PWMServoDriver(0x41);
 // you can also call it with a different address and I2C interface
-//Petoi_PWMServoDriver pwm = Petoi_PWMServoDriver(0x40, Wire);
+Petoi_PWMServoDriver pwm = Petoi_PWMServoDriver(0x40, Wire1);
 
 void testLoop() {
   for (int an = -180; an < 180; an += 90) { //0,90,180,270,

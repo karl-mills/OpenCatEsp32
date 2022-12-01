@@ -58,9 +58,10 @@
 */
 
 /*  Total DOF            Walking DOF
-                   Nybble    Bittle    Cub
-   BiBoard  (12)  skip 0~4  skip 0~4    12
+                   Nybble    Bittle    Cub      Nova
+   BiBoard  (12)  skip 0~4  skip 0~4    12      
    BiBoard2 (16)  skip 0~8  skip 0~8  skip0~4
+   M5CORE2  (16)                                12/skip 3
 */
 
 #define BIRTHMARK 'x' //Send 'R' token to reset the birthmark in the EEPROM so that the robot will know to restart and reset
@@ -77,10 +78,38 @@ const uint8_t PWM_pin[PWM_NUM] = {19,  4,  2, 27,   //head or shoulder roll
                                  };
 #if defined NYBBLE || defined BITTLE
 #define SERVO_FREQ 240
-#else //CUB
+#else //CUB or NOVA
 #define SERVO_FREQ 240
-#endif
+#endif 
 
+#else //BiBoard2 or M5CORE2
+#ifdef M5CORE2
+#define GYRO_PIN
+#define PWM_NUM 16
+#define INTERRUPT_PIN 27  
+#define BUZZER 14
+//#define VOLTAGE 4
+//#define LOW_VOLTAGE 6.8
+//#define NEOPIXEL_PIN 15
+//#define PWM_LED_PIN  5
+#define IR_PIN 2
+//#define TOUCH0 12
+//#define TOUCH1 13
+//#define TOUCH2 32
+//#define TOUCH3 33
+
+//                                headPan, tilt, tailPan, NA
+const uint8_t PWM_pin[PWM_NUM] = {0,       1,     8,    9,
+                                  2,       3,     10,    11,     //shoulder roll
+                                  4,       5,      12,    13,     //shoulder pitch
+                                  //                                  13,       10,     6,    2,     //shoulder roll
+                                  //                                  14,        9,     5,    1,     //shoulder pitch
+                                  6,       7,      14,    15      //knee
+                                 };
+//L:Left R:Right F:Front B:Back   LF,        RF,    RB,   LB
+
+
+#define SERVO_FREQ 240
 #else //BiBoard2
 #define GYRO_PIN
 #define PWM_NUM 16
@@ -107,17 +136,19 @@ const uint8_t PWM_pin[PWM_NUM] = {12,       11,     4,    3,
 //L:Left R:Right F:Front B:Back   LF,        RF,    RB,   LB
 
 
+
 #define SERVO_FREQ 240
-#endif
+#endif  //BiBoard2
+#endif //#else BiBoard2 or M5CORE2
 
 #define DOF 16
 #if defined NYBBLE || defined BITTLE
 #define WALKING_DOF 8
 #define GAIT_ARRAY_DOF 8
-#else //CUB
+#else //CUB or Nova
 #define WALKING_DOF 12
 #define GAIT_ARRAY_DOF 8
-#endif
+#endif// Cub or Nova
 
 enum ServoModel_t {
   G41 = 0,
@@ -145,13 +176,21 @@ enum ServoModel_t {
 #ifdef BiBoard2
 #define HEAD
 #define TAIL
-#endif
+#endif//BiBoard2
 #define LL_LEG
 #define REGULAR P1S
 #define KNEE P2K
 #include "InstinctCubESP.h"
 //#define MPU_YAW180
-#endif
+#elif defined NOVA
+#define HEAD
+#define TAIL
+#define LL_LEG
+#define REGULAR P1S  //TODO: KSM create a new set of servo types for Nova, for now just use P1S
+#define KNEE P2K
+#include "InstinctNovaESP.h"
+#endif//Robot type
+
 
 ServoModel_t servoModelList[] = {
   REGULAR, REGULAR, REGULAR, REGULAR,
@@ -248,27 +287,60 @@ int8_t middleShift[] = {0, 15, 0, 0,
                         -55, -55, -55, -55
                        };
 
-#else //CUB
-int8_t middleShift[] = {0, 15, 0, 0,
-                        -45, -45, -45, -45,
-                        55, 55, -55, -55,
-                        -45, -45, -45, -45
+#elif defined CUB
+                        //HeadPan, HeadTilt, TailPan, NC
+int8_t middleShift[] = { 0,        15,       0,       0,    //Head & Tail
+                        -45,      -45,      -45,     -45,   //Shoulder Roll 
+                         55,       55,      -55,     -55,   //Shoulder Pitch
+                        -45,      -45,      -45,     -45    //Knee Pitch
                        };
+                       //LF,       RF,       RB,      LB
+
+#else //Nova
+                        //HeadPan, HeadTilt, TailPan, NC
+int8_t middleShift[] = { 0,        15,       0,       0,    //Head & Tail
+                        -45,      -45,      -45,     -45,   //Shoulder Roll 
+                         55,       55,      -55,     -55,   //Shoulder Pitch
+                        -45,      -45,      -45,     -45    //Knee Pitch
+                       };
+                       //LF,       RF,       RB,      LB
 #endif
 
 #ifdef CUB
-int8_t rotationDirection[] = {1, -1, 1, 1,
-                              1, -1, 1, -1,
-                              1, -1, -1, 1,
-                              1, -1, -1, 1
+int8_t rotationDirection[] = {
+                          //HeadPan, HeadTilt, TailPan, NC
+                            1,      -1,        1,       1,
+                            1,      -1,        1,      -1,
+                            1,      -1,       -1,       1,
+                            1,      -1,       -1,       1
+                            //LF,    RF,       RB,      LB    
                              };
 int angleLimit[][2] = {
-  { -120, 120}, { -30, 80}, { -120, 120}, { -120, 120},
-  { -90, 60}, { -90, 60}, { -90, 90}, { -90, 90},
-  { -180, 120}, { -180, 120}, { -80, 200}, { -80, 200},
-  { -66, 100}, { -66, 100}, { -66, 100}, { -66, 100},
+                          // HeadPan,     HeadTilt,     TailPan,      NC
+                            { -120, 120}, { -30,  80},  { -120, 120}, { -120, 120},
+                            { -90,   60}, { -90,  60},  { -90,   90}, { -90,   90},
+                            { -180, 120}, { -180, 120}, { -80, 200},  { -80, 200}, 
+                            { -66, 100},  { -66, 100},  { -66, 100},  { -66, 100},
+                            //LF,         RF,           RB,           LB
 };
-#else
+#elif defined NOVA
+int8_t rotationDirection[] = {
+                          //HeadPan, HeadTilt, TailPan, NC
+                          1,      -1,        -1,       1,
+                          1,      -1,        -1,      1,
+                            1,      -1,       -1,       1,
+                            1,      -1,       -1,       1
+                            //LF,    RF,       RB,      LB    
+                             };
+int angleLimit[][2] = {
+                          // HeadPan,     HeadTilt,     TailPan,      NC
+                            { -120, 120}, { -30,  80},  { -120, 120}, { -120, 120},
+                            { -30,   30}, { -30,  30},  { -30,   30}, { -30,   30},  
+                            { -160, 100}, { -160, 100}, { -100, 160},  { -100, 160},
+                            { -66, 180},  { -66, 180},  { -66, 180},  { -66, 180},
+                            //LF,         RF,           RB,           LB
+};
+#else //Nybble and Bittle
 int8_t rotationDirection[] = {1, -1, 1, 1,
                               1, -1, 1, -1,
                               1, -1, -1, 1,

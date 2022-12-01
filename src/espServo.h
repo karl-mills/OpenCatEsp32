@@ -5,6 +5,8 @@ ServoModel servoP1S   (290,    SERVO_FREQ,      500,      2500);//1s/4 = 250ms 2
 ServoModel servoP2K   (290,    SERVO_FREQ,      500,      2500);
 #ifdef BiBoard2
 #include "pcaServo.h"
+#elif defined M5CORE2
+#include "pcaServo.h"
 #endif
 
 #define P_STEP 32
@@ -22,6 +24,11 @@ Servo servo[PWM_NUM];  // create servo object to control a servo
 void servoSetup() {
   i2c_eeprom_read_buffer(EEPROM_CALIB, (byte *)servoCalib, DOF);
   //------------------angleRange  frequency  minPulse  maxPulse;
+  PTLF("Servo Setup read");
+  PTL("Servo0\tServo1");
+  PTL(servoCalib[0]);
+  PTL("\t");
+  PTL(servoCalib[1]);
   ServoModel *model;
 #ifdef BiBoard
   PTL("Setup ESP32 PWM servo driver...");
@@ -84,7 +91,7 @@ void setServoP(unsigned int p) {
   for (byte s = 0; s < PWM_NUM; s++)
 #ifdef BiBoard
     servo[s].writeMicroseconds(p);
-#else
+#else //Biboard2 or M5CORE2
     pwm.writeMicroseconds(s, p);
 #endif
   }
@@ -96,7 +103,7 @@ void allRotate() {
     for (int s = 0; s < PWM_NUM; s++) {
 #ifdef BiBoard
       servo[s].write(pos);    // tell servo to go to position in variable 'pos'
-#else //BiBoard2
+#else //BiBoard2 or M5CORE2
       pwm.writeAngle(s, pos);
 #endif
       delay(1);             // waits 15ms for the servo to reach the position
@@ -108,7 +115,7 @@ void allRotate() {
     for (int s = 0; s < PWM_NUM; s++) {
 #ifdef BiBoard
       servo[s].write(pos);    // tell servo to go to position in variable 'pos'
-#else //BiBoard2
+#else //BiBoard2 or M5CORE2
       pwm.writeAngle(s, pos); //may go out of range. check!
 #endif
       delay(1);             // waits 15ms for the servo to reach the position
@@ -122,7 +129,7 @@ void allRotateWithIMU() {
   for (int s = 0; s < PWM_NUM; s++) {
 #ifdef BiBoard
     servo[s].write(90 + ypr[1]  + ypr[2] ); // tell servo to go to position in variable 'pos'
-#else //BiBoard2
+#else //BiBoard2 or M5CORE2
     pwm.writeAngle(s, 90 + ypr[1]  + ypr[2] );
 #endif
     //    delay(1);             // waits 15ms for the servo to reach the position
@@ -164,7 +171,7 @@ void shutServos() {
     //        break;
     //    }
     //    servo[s].attach(PWM_pin[s], model);
-#else //using PCA9685
+#else //using PCA9685 on BiBoard2 or M5CORE2
     pwm.setPWM(s, 0, 4096);
 #endif
   }

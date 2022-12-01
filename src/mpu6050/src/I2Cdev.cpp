@@ -221,6 +221,7 @@ int8_t I2Cdev::readBytes(uint8_t devAddr, uint8_t regAddr, uint8_t length, uint8
 
     int8_t count = 0;
     uint32_t t1 = millis();
+    int i_count;
 
     #if (I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE || I2CDEV_IMPLEMENTATION == I2CDEV_BUILTIN_SBWIRE || I2CDEV_IMPLEMENTATION == I2CDEV_TEENSY_3X_WIRE)
 
@@ -275,6 +276,45 @@ int8_t I2Cdev::readBytes(uint8_t devAddr, uint8_t regAddr, uint8_t length, uint8
             // Arduino v1.0.1+, Wire library
             // Adds official support for repeated start condition, yay!
 
+            // I2C/TWI subsystem uses internal buffer that breaks with large data requests
+            // so if user requests more than BUFFER_LENGTH bytes, we have to do it in
+            // smaller chunks instead of all at once
+            if(length > BUFFER_LENGTH){
+              Serial.println("Error: I2C Buffer Length Exceeded");
+              //Stop processing for now... fix later
+              while(true);
+            }
+            Wire.beginTransmission(devAddr);
+            Wire.write((int)regAddr);
+            Wire.endTransmission();
+            //Wire.beginTransmission(devAddr);
+            //Serial.print("Request Size:");
+            //Serial.println(length);
+            Wire.requestFrom(devAddr, length);
+          
+          
+            for (i_count=0; i_count< length;i_count++)  {
+              while(!Wire.available());
+              data[count++] = Wire.read();
+                  //Serial.print(count);
+                  //Serial.print(":");
+                  //Serial.print(data[count], HEX);
+                  //Serial.print(" ");
+              
+            }
+
+            Wire.endTransmission();
+            //Serial.println("Exiting I2C Read");
+            return(count);
+            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            //!!!!!!!!!!!!!Below code will not execute (does not appear to work!)!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            //
+            //
             // I2C/TWI subsystem uses internal buffer that breaks with large data requests
             // so if user requests more than BUFFER_LENGTH bytes, we have to do it in
             // smaller chunks instead of all at once

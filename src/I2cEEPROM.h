@@ -27,14 +27,18 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
   SOFTWARE.
 */
-
+#ifdef M5CORE2
+#include <EEPROM.h>   //Use the EEPROM library to store the calibration parameters this is created at the top level (OpenCatEsp32.ino)
+#else //BiBoard and BiBoard2
 #include <Wire.h>
 #define DEVICE_ADDRESS 0x54    //Address of eeprom chip
+#endif
+
 #define WIRE_BUFFER 30 //Arduino wire allows 32 byte buffer, with 2 byte for address.
 #define WIRE_LIMIT 16 //That leaves 30 bytes for data. use 16 to balance each writes
 #define PAGE_LIMIT 32 //AT24C32D 32-byte Page Write Mode. Partial Page Writes Allowed
-#define SIZE 65536/8
-#define EEPROM_SIZE (65536/8)
+#define SIZE 65536/16
+#define EEPROM_SIZE (65536/16)
 bool EEPROMOverflow = false;
 
 
@@ -46,7 +50,25 @@ bool EEPROMOverflow = false;
 #define EEPROM_RESERVED 50
 #define SERIAL_BUFF 100
 
-void i2cDetect() {
+
+
+void i2cDetect() {  
+#ifdef M5CORE2
+PTL("In i2cDetect");
+  //Initialize the EEPROM to size = EEPROM_SIZE
+if (!EEPROM.begin(EEPROM_SIZE)) {  //Request storage of SIZE size(success return 1).  )
+    Serial.println(
+        "\nFailed to initialise EEPROM!");
+    delay(1000000); 
+} 
+else{
+  Serial.println("EEPROM Config OK");
+  //Serial.println("Testing EEPROM");
+  //EEPROM.writeUChar(EEPROM_CALIB, 0x10);
+  //Serial.print("C0: ");
+  //Serial.println(EEPROM.readUChar(EEPROM_CALIB));
+}
+#else
   Wire.begin();
   byte error, address;
   int nDevices;
@@ -83,9 +105,15 @@ void i2cDetect() {
     Serial.println("- No I2C devices found");
   else
     Serial.println("- done");
+#endif
 }
 
 void i2c_eeprom_write_byte( unsigned int eeaddress, byte data ) {
+  
+#ifdef M5CORE2
+  EEPROM.writeUChar(eeaddress, data);
+  EEPROM.commit();
+#else
   int rdata = data;
   Wire.beginTransmission(DEVICE_ADDRESS);
   Wire.write((int)(eeaddress >> 8)); // MSB
@@ -93,16 +121,21 @@ void i2c_eeprom_write_byte( unsigned int eeaddress, byte data ) {
   Wire.write(rdata);
   Wire.endTransmission();
   delay(5);  // needs 5ms for write
+#endif
 }
 
 byte i2c_eeprom_read_byte( unsigned int eeaddress ) {
   byte rdata = 0xFF;
+#ifdef M5CORE2
+  rdata = EEPROM.readUChar(eeaddress);
+#else
   Wire.beginTransmission(DEVICE_ADDRESS);
   Wire.write((int)(eeaddress >> 8)); // MSB
   Wire.write((int)(eeaddress & 0xFF)); // LSB
   Wire.endTransmission();
   Wire.requestFrom(DEVICE_ADDRESS, 1);
   if (Wire.available()) rdata = Wire.read();
+#endif
   return rdata;
 }
 
@@ -110,6 +143,10 @@ byte i2c_eeprom_read_byte( unsigned int eeaddress ) {
 //This function will write a 2-byte integer to the EEPROM at the specified address and address + 1
 void i2c_eeprom_write_int16(unsigned int eeaddress, int16_t p_value)
 {
+#ifdef M5CORE2
+  EEPROM.writeShort(eeaddress, p_value);
+  EEPROM.commit();
+#else  
   byte lowByte = ((p_value >> 0) & 0xFF);
   byte highByte = ((p_value >> 8) & 0xFF);
   Wire.beginTransmission(DEVICE_ADDRESS);
@@ -122,11 +159,15 @@ void i2c_eeprom_write_int16(unsigned int eeaddress, int16_t p_value)
 
   //  EEPROM.update(p_address, lowByte);
   //  EEPROM.update(p_address + 1, highByte);
+#endif
 }
 
 //This function will read a 2-byte integer from the EEPROM at the specified address and address + 1
 int16_t i2c_eeprom_read_int16(unsigned int eeaddress)
 {
+#ifdef M5CORE2
+  return(EEPROM.readShort(eeaddress));
+#else
   Wire.beginTransmission(DEVICE_ADDRESS);
   Wire.write((int)(eeaddress >> 8)); // MSB
   Wire.write((int)(eeaddress & 0xFF)); // LSB
@@ -135,10 +176,17 @@ int16_t i2c_eeprom_read_int16(unsigned int eeaddress)
   byte lowByte = Wire.read();
   byte highByte = Wire.read();
   return (int16_t((lowByte << 0) & 0xFF) + ((highByte << 8) & 0xFF00));
+#endif   
 }
 
 
 void i2c_eeprom_read_buffer( unsigned int eeaddress, byte *buffer, int length ) {
+#ifdef M5CORE2
+  EEPROM.readBytes(eeaddress,buffer,length);
+  PTL(buffer[0]);
+  buffer[0] = EEPROM.readUChar(eeaddress);
+  PTL(buffer[0]);
+#else
   Wire.beginTransmission(DEVICE_ADDRESS);
   Wire.write((int)(eeaddress >> 8)); // MSB
   Wire.write((int)(eeaddress & 0xFF)); // LSB
@@ -149,6 +197,7 @@ void i2c_eeprom_read_buffer( unsigned int eeaddress, byte *buffer, int length ) 
     if (Wire.available()) buffer[c] = Wire.read();
     //    PT((char)buffer[c]);
   }
+#endif
 }
 
 
@@ -156,6 +205,10 @@ void writeLong(unsigned int eeAddress, char *data, int len) {
   //byte locationInPage = eeAddress % PAGE_LIMIT;
   i2c_eeprom_write_byte(eeAddress++, len);
   //  PTL("write " + String(len) + " bytes");
+#ifdef M5CORE2
+  EEPROM.writeBytes(eeAddress, data, len);
+  EEPROM.commit();
+#else
   int writtenToEE = 0;
   while (len > 0) {
     Wire.beginTransmission(DEVICE_ADDRESS);
@@ -186,11 +239,15 @@ void writeLong(unsigned int eeAddress, char *data, int len) {
     //    PTL("wrote " + String(writtenToWire) + " bytes.");
   }
   //  PTL("finish writing");
+#endif
 }
 
 void readLong(unsigned int eeAddress, char *data) {
   int len = i2c_eeprom_read_byte(eeAddress++);
   PTL("read " + String(len) + " bytes");
+#ifdef M5CORE2
+  i2c_eeprom_read_buffer(eeAddress, (byte*) data, len);  
+#else
   int readFromEE = 0;
   int readToWire = 0;
 
@@ -208,7 +265,7 @@ void readLong(unsigned int eeAddress, char *data) {
     } while (--len > 0 && ++readToWire < WIRE_BUFFER);
     PTL();
   }
-
+#endif
   PTL("finish reading");
 }
 
@@ -223,14 +280,17 @@ The five boxing wizards jump quickly. Pack my box with five dozen liquor jugs.";
 //char data[]={16,-3,5,7,9};
 
 void genBleID(int suffixDigits = 2) {
+  const char *prefix = "Bittle";  
+  /*
   const char *prefix =
 #ifdef BITTLE
     "Bittle"
 #elif defined NYBBLE
-    "Nybble"
+    "Nybble" 
 #else
     "Cub"
 #endif
+*/
     ;
   int prelen = strlen(prefix);
   //  PTL(prelen);
@@ -259,6 +319,7 @@ char* readBleID() {
   Serial.print("Bluetooth name: ");
   Serial.println(id);
   return id;
+  
 }
 
 int dataLen(int8_t p) {
@@ -272,9 +333,11 @@ int dataLen(int8_t p) {
 }
 void i2cEepromSetup()
 {
+#ifdef M5CORE2
+#else
   Wire.begin(); // initialise the connection
   delay(1);
-
+#endif
   newBoard = newBoardQ(EEPROM_BIRTHMARK_ADDRESS);
 
   if (newBoard) {
@@ -300,6 +363,10 @@ void i2cEepromSetup()
 }
 void copydataFromBufferToI2cEeprom(unsigned int eeAddress, int8_t *dataBuffer) {
   int len = dataLen(dataBuffer[0]) + 1;
+#ifdef M5CORE2
+  EEPROM.writeBytes(eeAddress, dataBuffer, len);
+  EEPROM.commit();
+#else
   int writtenToEE = 0;
   while (len > 0) {
     Wire.beginTransmission(DEVICE_ADDRESS);
@@ -327,8 +394,14 @@ void copydataFromBufferToI2cEeprom(unsigned int eeAddress, int8_t *dataBuffer) {
   }
   delay(6);
   //  PTLF("finish copying to I2C EEPROM");
+#endif
 }
 void loadDataFromI2cEeprom(unsigned int eeAddress) {
+#ifdef M5CORE2
+  dataBuffer[0] = i2c_eeprom_read_byte(eeAddress);
+  int bufferLen = dataLen(dataBuffer[0]);
+  EEPROM.readBytes(eeAddress+1,&dataBuffer[1],bufferLen);
+#else
   Wire.beginTransmission(DEVICE_ADDRESS);
   Wire.write((int)((eeAddress) >> 8));   // MSB
   Wire.write((int)((eeAddress) & 0xFF)); // LSB
@@ -351,11 +424,17 @@ void loadDataFromI2cEeprom(unsigned int eeAddress) {
     //    PTL();
   }
   //      dataBuffer[tail] = '\0';
+#endif
 }
 
 void saveCalib(int8_t *var) {
+  PTL("In saveCalib");
   for (byte s = 0; s < DOF; s++) {
-    i2c_eeprom_write_byte(EEPROM_CALIB + s, var[s]);
+    //i2c_eeprom_write_byte(EEPROM_CALIB + s, var[s]);
+    EEPROM.write(EEPROM_CALIB + s, var[s]);
+    PTL(var[s]);
     calibratedZeroPosition[s] = zeroPosition[s] + float(var[s])  * rotationDirection[s];
   }
+  EEPROM.commit();
+  delay(100);
 }

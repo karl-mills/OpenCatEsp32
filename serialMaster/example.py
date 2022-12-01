@@ -9,13 +9,14 @@ sit = [
 1, 0, -30, 1,
     0,   0, -45,   0,  -5,  -5,  20,  20,  45,  45, 105, 105,  45,  45, -45, -45]
 ck = [
-    -2, 0, 5, 1,
+    -3, 0, 5, 1,
     0, 1, 2,
     45,   0,   0,   0,   0,   0,   0,   0,  45,  35,  38,  50, -30, -10,   0, -20,     6, 1, 0, 0,
    -45,   0,   0,   0,   0,   0,   0,   0,  35,  45,  50,  38, -10, -30, -20,   0,     6, 1, 0, 0,
+     0,   0,   0,   0,   0,   0,   0,   0,  30,  30,  30,  30,  30,  30,  30,  30,     5, 0, 0, 0,
 ]
 pu = [
--8, 0, -15, 1,
+-9, 0, -15, 1,
  6, 7, 3,
     0,   0,   0,   0,   0,   0,   0,   0,  30,  30,  30,  30,  30,  30,  30,  30,     5, 0, 0, 0,
    15,   0,   0,   0,   0,   0,   0,   0,  30,  35,  40,  29,  50,  15,  15,  15,     5, 0, 0, 0,
@@ -25,14 +26,17 @@ pu = [
   -15,   0,   0,   0,   0,   0,   0,   0,  60,  60,  70,  70,  15,  15,  60,  60,     6, 0, 0, 0,
     0,   0,   0,   0,   0,   0,   0,   0,  30,  30,  95,  95,  60,  60,  60,  60,     6, 1, 0, 0,
    30,   0,   0,   0,   0,   0,   0,   0,  75,  70,  80,  80, -50, -50,  60,  60,     8, 0, 0, 0,
+    0,   0,   0,   0,   0,   0,   0,   0,  30,  30,  30,  30,  30,  30,  30,  30,     5, 0, 0, 0,
    ]
 pee = [
--4, 0, 10, 1,
+-5, 0, 10, 1,
  2, 3, 3,
    30,  20,   0,   0,  15, -10,  60, -10,  40,  40,  90,  45,  10,  60,  70,  45,     6, 0, 0, 0,
    45,  20,   0,   0,  15, -10,  60, -10,  60,  53, 115,  60, -30,  40,  50,  21,     2,10, 0, 0,
    30,  20,   0,   0,  15, -10,  60, -10,  40,  40,  90,  45,  10,  50,  70,  45,    16, 0, 0, 0,
-   30,  20,   0,   0,  15, -10,  60, -10,  40,  40, 103,  45,  10,  50,  80,  45,    16, 0, 0, 0,]
+   30,  20,   0,   0,  15, -10,  60, -10,  40,  40, 103,  45,  10,  50,  80,  45,    16, 0, 0, 0,
+    0,   0,   0,   0,   0,   0,   0,   0,  30,  30,  30,  30,  30,  30,  30,  30,     5, 0, 0, 0,
+    ]
    
 vt = [
 21, 0, 0, 1,
@@ -116,20 +120,36 @@ wkF = [
   16,  48,  69,  42,  12,  17,  11,  14,
   12,  49,  63,  44,  17,  18,   1,  15]
 
+model = 'Bittle'
+postureTable = postureDict[model]
+
+E_RGB_ALL = 0
+E_RGB_RIGHT = 1
+E_RGB_LEFT = 2
+
+E_EFFECT_BREATHING = 0
+E_EFFECT_ROTATE = 1
+E_EFFECT_FLASH = 2
+E_EFFECT_NONE = 3
 
 
 if __name__ == '__main__':
     try:
-        flushSerialOutput(300)
-
         '''
         testSchedule is used to test various serial port commands
         '''
         testSchedule = [
+                        
+            # turn off the gyroscope
+            ['g',0],
+            
+            # turn off the random behavior
+            ['z',0],
             
             # - 'kbalance' indicates the command to control Bittle to stand normally
             # - 1 indicates the postponed time after finishing the command, in seconds
             # - the skill data is stored locally on the robot
+            
             ['kbalance', 1],
 
             # - m indicates the command to control the rotation of the joint servo
@@ -177,8 +197,8 @@ if __name__ == '__main__':
             # - 50, 50, 50, 50, 0 indicate the rotation angle (this angle refers to the origin,
             #                     rather than additive), the unit is degree
             # - 3 indicates the postponed time after finishing the command, in seconds
-            ['I', [8, -20, 0, 0, 9, 50, 10, -20, 11, 50, 14, 80], 1],
-            ['I', [8, 20, 0, 40, 9, -20, 10, 50, 11, -20], 1],
+            ['I', [8, -20, 0, 0, 9, -20, 10, 20, 11, 20, 14, 80, 15, 80], 1],
+            ['I', [8, 20, 0, 40, 9,  20, 10, 50, 11, 50, 14, 60, 15, 60], 1],
 
             # - L indicates the command to control all joint servos to rotate at the same time
             #     (currently the command supports 16 degrees of freedom, that is, 16 servos)
@@ -186,48 +206,76 @@ if __name__ == '__main__':
             #               angle of each joint servo corresponding to 0-15 (this angle refers to
             #               the origin, rather than additive), the unit is degree
             # - 5 indicates the postponed time after finishing the command, in seconds
-            ['L', [20, 0, 0, 0, 0, 0, 0, 0, 25, 0, 45, 45, 80, 80, 36, 36], 1],
+            ['L', [20, 0, 0, 0, 0, 0, 0, 0, 5, 0, 45, 45, 80, 80, 36, 36], 1],
+
+            # - u calls a 'meow' sound
+            ['u',0],
+
+            # - o calls a built-in melody
+            ['o',0],
 
             # - b indicates the command to control the buzzer to beep, encrypted in ASCII
-            # - 15 indicates the music tone
-            # - 90 indicates the lengths of duration, the value range is 0~255
-            # - 2 indicates the postponed time after completing the pronunciation, in seconds
-            ['b',[15, 90, 12, 90, 15, 90, 12, 90, 15, 90, 12, 90, 8, 180, 10, 90, 13, 90, 12, 90, 10, 90, 15, 180,],1],
+            # - the first number in the pair indicates the music tone
+            # - the second number in the pair indicates the duration, corresponding to 1/duration second
+            # - 1 indicates the postponed time after completing the pronunciation, in seconds
+
+            ['b',[0, 1, 14, 8, 14, 8, 21, 8, 21, 8, 23, 8, 23, 8, 21, 4, 19, 8, 19, 8, 18, 8, 18, 8, 16, 8, 16, 8, 14, 4],1],
+
+            # - 'K' indicates the skill data to send to Bittle in realtime
+            # they are sent to the robot on the go and executed locally on the robot
+            # no overhead of communication and waiting for both sides.
+            ['kvtF', 2],
+            ['K',sit, 1],
+            ['kck', 1],
+#            # 'T' calls the last temp skill data of 'K' received from the serial port
+            ['T', 2],
+            ['K', vt, 2],
+            ['ksit', 1],
+            ['T', 2],
+            ['K', ck, 1],  # compare it with the previous 'kck' command
+
+            # large angles out of -125~125 are also supported
+            ['I', [8, -140, 0, 40, 9, -140, 10, 50, 11, 50], 1],
+            ['L', [20, 0, 0, 0, 0, 0, 0, 0,-55,-55, 45, 45, 130, 130, 36, 36], 1],
 
             # Using this format, multiple tone commands can be encrypted in binary
             # the music melody is played.
             # - '20', '22', '24', '15', '20' indicate the music tones
             # - '4', '4', '4', '4', '4' indicates 3 second/lengths of duration
             # - 2 indicates the postponed time after the music melody is played, in seconds
-            ['B',[20, 4, 22, 4, 24, 4, 15, 4, 20, 4, 22, 8, 24, 1, 22, 4, 20, 4, 22, 4, 27, 4, 27, 4, 27, 4, 27, 2, 20, 4, 19, 4, 20, 4, 20, 4, 20, 4, 20, 4, 20, 2, 19, 4, 20, 4, 19, 4, 20, 4, 19, 4, 17, 4, 15, 2, 15, 4, 15, 4, 17, 4, 17, 4, 17, 4, 17, 4, 17, 2, 15, 4, 12, 4, 15, 4, 12, 4, 15, 4, 22, 4, 20, 2, -1, 4, 15, 4, 24, 4, 24, 4, 24, 4, 25, 4, 27, 4, 20, 4, 20, 4, 24, 4, 22, 1, 22, 1, -1, 2, 15, 4, 15, 4, 15, 2, 15, 4, 15, 4, 17, 4, 15, 4, 12, 4, 15, 4, -1, 4, 7, 4, 8, 4, 8, 4, 12, 2, 12, 4, 13, 4, 12, 4, 8, 4, 8, 4, 10, 4, 12, 1, -1, 4, 12, 4, 10, 4, 8, 4, 8, 4, 8, 2, 7, 4, -1, 4, 8, 4, 8, 4, 8, 4, 8, 4, 3, 4, 3, 4, 12, 2, 8, 4, 8, 4, 3, 4, 13, 2, 13, 4, 13, 4, 13, 4, 5, 4, 8, 4, 8, 4, 10, 1, 10, 1], 1],
 
-            # - 'K' indicates the skill data to send to Bittle in realtime
-            # they are sent to the robot on the go and executed locally on the robot
-            # no overhead of communication and waiting for both sides.
-            ['kvt', 2],
-            ['K',sit, 1],
-            ['kck', 1],
-            # 'T' calls the last temp skill data of 'K' received from the serial port
-            ['T', 2],
-            ['K', vt, 2],
-            ['ksit', 1],
-            ['T', 2],
-            ['K', ck, 1],  # compare it with the previous 'kck' command
-            ['d', 0]
+            # may be cut off by multithreading. haven't fixed it.
+#            ['B',[20, 4, 22, 4, 24, 4, 15, 4, 20, 4, 22, 8, 24, 1, 22, 4, 20, 4, 22, 4, 27, 4, 27, 4, 27, 4, 27, 2, 20, 4, 19, 4, 20, 4, 20, 4, 20, 4, 20, 4, 20, 2, 19, 4, 20, 4, 19, 4, 20, 4, 19, 4, 17, 4, 15, 2, 15, 4, 15, 4, 17, 4, 17, 4, 17, 4, 17, 4, 17, 2, 15, 4, 12, 4, 15, 4, 12, 4, 15, 4, 22, 4, 20, 2, -1, 4, 15, 4, 24, 4, 24, 4, 24, 4, 25, 4, 27, 4, 20, 4, 20, 4, 24, 4, 22, 1, 22, 1, -1, 2,],0],
+            ['B',[15, 4, 15, 4, 15, 2, 15, 4, 15, 4, 17, 4, 15, 4, 12, 4, 15, 4, -1, 4, 7, 4, 8, 4, 8, 4, 12, 2, 12, 4, 13, 4, 12, 4, 8, 4, 8, 4, 10, 4, 12, 1, -1, 4, 12, 4, 10, 4, 8, 4, 8, 4, 8, 2, 7, 4, -1, 4, 8, 4, 8, 4, 8, 4, 8, 4, 3, 4, 3, 4, 12, 2, 8, 4, 8, 4, 3, 4, 13, 2, 13, 4, 13, 4, 13, 4, 5, 4, 8, 4, 8, 4, 10, 1, 10, 1], 0],
+            
+            # if the robot has our RGB LED ultrasonic sensor connected
+            # 'C' is for color
+            #    [R, G, B, enable, effect]
+            ['C',[127,  0,  0, E_RGB_ALL,   E_EFFECT_NONE],     2],
+            ['C',[  0,127,  0, E_RGB_RIGHT, E_EFFECT_BREATHING],2],
+            ['C',[  0,  0,127, E_RGB_LEFT,  E_EFFECT_ROTATE],   2],
+            ['C',[127,127,127, E_RGB_ALL,   E_EFFECT_BREATHING],2],
+            
+            ['d', 0],
         ]
-        
+        goodPorts = {}
+        connectPort(goodPorts)
+        t=threading.Thread(target = keepCheckingPort, args = (goodPorts,))
+        t.start()
+        parallel = False
+#        if len(goodPorts)>0:
         time.sleep(2);
         for task in testSchedule:  # execute the tasks in the testSchedule
             print(task)
-            wrapper(task)
+            send(goodPorts, task)
         
-        schedulerToSkill(testSchedule[:11]) # compile the motion related instructions to a skill and send it to the robot. the last skill sent over in this way can be recalled by the 'T' token even after the robot reboots. 
-
-        closeSerialBehavior()
+#        schedulerToSkill(goodPorts, testSchedule) # compile the motion related instructions to a skill and send it to the robot. the last skill sent over in this way can be recalled by the 'T' token even after the robot reboots.
+        closeAllSerial(goodPorts)
         logger.info("finish!")
+        os._exit(0)
 
     except Exception as e:
-        wrapper(['d',1])
         logger.info("Exception")
-        closeSerialBehavior()
+        closeAllSerial(goodPorts)
+        os._exit(0)
         raise e

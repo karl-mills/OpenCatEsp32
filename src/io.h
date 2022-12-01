@@ -75,6 +75,8 @@ void blueSspSetup() {
   SerialBT.enableSSP();
   SerialBT.onConfirmRequest(BTConfirmRequestCallback);
   SerialBT.onAuthComplete(BTAuthCompleteCallback);
+  char* tempID = readBleID();
+  PTL(tempID); 
   SerialBT.begin(strcat(readBleID(), "_SSP")); //Bluetooth device name
   Serial.println("The device is started, now you can pair it with bluetooth!");
 }
@@ -216,13 +218,25 @@ void readSignal() {
       randomMind();//make the robot do random demos
   }
 }
-
+static int yPointerLcd;
 void printToken(char t = token) {
   if (deviceConnected)
     bleWrite(String(t));
   if (!confirmRequestPending)
     SerialBT.println(t);
   PTL(t);
+#ifdef M5CORE2
+
+  if(yPointerLcd >= 240) {
+    yPointerLcd = 0;
+  }
+  M5.Lcd.setCursor(10,yPointerLcd);
+  M5.Lcd.print(t);
+  //Increment the y pointer to next line and clear the next line
+  yPointerLcd += 30;
+  M5.Lcd.setCursor(10,yPointerLcd);
+  M5.Lcd.print("    ");  
+#endif
 }
 //— read human sensors (top level) —
 
