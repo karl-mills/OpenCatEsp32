@@ -115,7 +115,12 @@ class Skill {
         for (int col = 0; col < frameSize ; col++) {
           if (WALKING_DOF == 12 && GAIT_ARRAY_DOF == 8 && period > 1)
             if (col < 4)
+#ifdef NOVA
+              //KSM for now use -15 degrees during gate.  This can be removed if GAIT_ARRAY_DOF is changed to 12 and skills are updated
+              dutyAngles[k * frameSize + col] = -15;  
+#else //CUB
               dutyAngles[k * frameSize + col] = 0;
+#endif
             else
               dutyAngles[k * frameSize + col] = int8_t(dataBuffer[skillHeader + k * GAIT_ARRAY_DOF + col - 4]);
           else

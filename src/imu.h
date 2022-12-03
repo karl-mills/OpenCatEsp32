@@ -51,8 +51,16 @@
 
 #include <M5Core2.h>  //MPU6886 is already included with the M5Core2, so just include header here.
 //#include <utility/MPU6886.h>
-//Below is included to provide definitions for Vectors, Quaternions, etc.  
+//Note: because the MPU6886.h is included and the class is instantiated in M5Core2.h, the MPU6886 class
+//  cannot be derived to new class to extended the features to include calibration without modifying 
+//  M5Core2.h (which is controlled by M5Stack), so instead the M5 Core2 utility files MPU6886.h and MPU6886.cpp 
+//  have been modified from the original M5Stack source to support calibration.  Once the code had been 
+//  proven out the intent will be to request a GitHub pull from the modified source to have M5Stack implement 
+//  the offset calibrations.  
+//
+//  Below file is included to provide definitions for Vectors, Quaternions, etc.  
 //TODO: This could probably be removed and just include necessary definitions in future.
+//But, since it is already being used for the other OpenCat implementations, leave for now.
 #include "mpu6050/src/helper_3dmath.h"
 
 // uncomment "OUTPUT_READABLE_YAWPITCHROLL" if you want to see the yaw/
@@ -173,6 +181,9 @@ VectorFloat gravity;    // [x, y, z]            gravity vector
 float euler[3];         // [psi, theta, phi]    Euler angle container
 float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector. unit is radian
 int8_t yprTilt[3];
+#ifdef M5CORE2
+float yprCal[3] = {0.0, 0.0, 5.0};//For now do this basic cal for M5CORE2
+#endif 
 
 float originalYawDirection;
 
@@ -327,7 +338,7 @@ bool read_IMU() {
   M5.IMU.getAccelAdc(&aaReal.x, &aaReal.y, &aaReal.z);  //gets the triaxial accelerometer.
 
   //PTL("Core2 Accel Data");
-  //PTL("\taccX\taccY\taccZ");
+ // PTL("\taccX\taccY\taccZ");
   //PT("\t");
   //PT(aaReal.x);
   //PT("\t");
@@ -345,9 +356,9 @@ bool read_IMU() {
   //  M5.IMU.getAhrsData(&ypr[0], &ypr[1], &ypr[2]);
   //  Is this correct???
   M5.IMU.getAhrsData(&pitch, &roll, &yaw);  //Stores the inertial sensor attitude.
-  ypr[0] = yaw;
-  ypr[1] = -pitch;  //Only pitch is reversed from Bittle
-  ypr[2] = roll;
+  ypr[0] = yaw + yprCal[0];
+  ypr[1] = -pitch + yprCal[1];  //Only pitch is reversed from Bittle
+  ypr[2] = roll + yprCal[2];
 
   
   //PTL("Core2 YPR Data");
@@ -410,6 +421,39 @@ void imuSetup() {
 //Match the setup of the MPU6050
 //M5.IMU.SetGyroFsr((MPU6886::GFS_2000DPS));//set to +/- 250 dps (default is 2000 dps)
 //M5.IMU.SetAccelFsr(MPU6886::AFS_16G);//set to +/- 2g (default is 8g)
+//Test the IMU offset calibration
+//int16_t calAccX;
+//int16_t calAccY;
+//int16_t calAccZ;
+
+//delay(1000);
+//M5.IMU.getAccelAdc(&calAccX, &calAccY, &calAccZ);
+//PT("Calibration Accelerometer X: ");
+//PTL(calAccX);
+//PT("Calibration Accelerometer Y: ");
+//PTL(calAccY);
+//PT("Calibration Accelerometer Z: ");
+//PTL(calAccZ);
+
+//calAccX = -calAccX;
+//calAccY = -calAccY;
+//For now use 0
+//calAccZ = 0;
+
+//delay(1000);
+//M5.IMU.setAccelAdcOff(&calAccX, &calAccY, &calAccZ);
+
+//delay(1000);
+//M5.IMU.getAccelAdc(&calAccX, &calAccY, &calAccZ);
+//PT("Calibration Accelerometer X: ");
+//PTL(calAccX);
+//PT("Calibration Accelerometer Y: ");
+//PTL(calAccY);
+//PT("Calibration Accelerometer Z: ");
+//PTL(calAccZ);
+
+
+
 
 #else //not M5CORE2
   // join I2C bus (I2Cdev library doesn't do this automatically)
