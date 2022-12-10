@@ -5,25 +5,16 @@ OpenCat code running on M5Stack Core2, an ESP32 controller.
 
 ## Configuration:
 
-ESP32 Dev Module
+ESP32 based M5Stack Core2
+M5Stack Servo2 Module
+M5Stack Proto 13.2 with Core2 Gyro/Mic Module inside
 
-* Upload Speed: 921600
+## 3D Print Files
 
-* CPU Frequency: 240MHz(WiFi/BT)
-
-* Flash Frequency: 80MHz
-
-* Flash Mode: QIO
-
-* Flash Size: 16MB
-
-* Partition Scheme: Default 4MB with spiffs (we will add instructions on making larger partitions)
-
-* Core Debug Level: None
-
-* PSRAM: Disabled
+Located in the STL Files directory of this Repo
+Modified from Original Nova Spot Micro Design
 
 
-![Alt Text](https://github.com/karl-mills/OpenCatEsp32/Images/NovaWalk.gif)
+<img src="./Images/NovaWalk.gif"/>
 
 
