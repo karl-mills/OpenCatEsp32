@@ -11,7 +11,7 @@ M5Stack Proto 13.2 with Core2 Gyro/Mic Module inside
 ```
 ## 3D Print Files
 ```
-Located in the STL Files directory of this Repo
+Located in the NovaSTLFiles directory of this Repo
 Modified from Original Nova Spot Micro Design
 ```
 
