@@ -1,8 +1,6 @@
 # OpenCatESP32
 
-OpenCat code running on BiBoard, an ESP32 controller. 
-
-[User manual](https://docs.petoi.com/arduino-ide/upload-sketch-for-biboard)
+OpenCat code running on M5Stack Core2, an ESP32 controller. 
 
 
 ## Configuration:
@@ -26,6 +24,6 @@ ESP32 Dev Module
 * PSRAM: Disabled
 
 
-[![BittleESP32](https://github.com/PetoiCamp/NonCodeFiles/blob/master/gif/BiBoard.gif)](https://www.youtube.com/watch?v=GTgps_H990w)
+[![BittleESP32](https://github.com/karl-mills/OpenCatESP32/gif/Nova.gif)]
 
-Click the GIF to open the YouTube demo.
+
