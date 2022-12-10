@@ -24,6 +24,6 @@ ESP32 Dev Module
 * PSRAM: Disabled
 
 
-[![BittleESP32](https://github.com/karl-mills/OpenCatESP32/gif/Nova.gif)]
+![NovaESP2](https://github.com/karl-mills/OpenCatESP32/images/Nova.gif)
 
 
