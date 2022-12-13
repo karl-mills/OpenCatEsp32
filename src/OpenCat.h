@@ -88,8 +88,8 @@ const uint8_t PWM_pin[PWM_NUM] = {19,  4,  2, 27,   //head or shoulder roll
 #define PWM_NUM 16
 #define INTERRUPT_PIN 27  
 #define BUZZER 14
-//#define VOLTAGE 4
-//#define LOW_VOLTAGE 6.8
+#define VOLTAGE 35
+#define LOW_VOLTAGE 10.7
 //#define NEOPIXEL_PIN 15
 //#define PWM_LED_PIN  5
 #define IR_PIN 2

@@ -11,6 +11,84 @@ void dealWithExceptions() {
 }
 
 #ifdef VOLTAGE
+#ifdef M5CORE2
+#include <M5Core2.h>
+#define HIGH_VOLTAGE 12.5
+  static float battAverage = ((((float)analogRead(VOLTAGE))*19.95)/4096.0);
+  bool lowBattery() {
+  long currentTime = millis() / CHECK_BATTERY_PERIOD;
+  if (currentTime > uptime) {
+    uptime = currentTime;
+    //float voltage = analogRead(VOLTAGE);
+    float battValue = ((((float)analogRead(VOLTAGE))*19.95)/4096.0);
+    battAverage = ((battAverage*9.0)+battValue)/10;  //Average the last 10 readings.
+    float battPercent = (battAverage - LOW_VOLTAGE)*100.0/(HIGH_VOLTAGE-LOW_VOLTAGE);
+    //Send battery volatage and percent to the screen
+    M5.Lcd.setCursor(115, 50, 2);
+    //Set Color of text to green if battery has more than 10%, otherwise make it red
+    if(battPercent >= 10.0){  
+      M5.Lcd.setTextColor(TFT_GREEN, TFT_BLACK);
+    }    
+    else{
+      M5.Lcd.setTextColor(TFT_RED, TFT_BLACK);
+    }  
+    M5.Lcd.print("             ");
+    M5.Lcd.setCursor(115, 50, 2);
+    M5.Lcd.print("V=");
+    M5.Lcd.print(battAverage);
+    M5.Lcd.setCursor(115, 75, 2);
+    M5.Lcd.print("             ");
+    M5.Lcd.setCursor(115, 75, 2);
+    M5.Lcd.print("%=");
+    M5.Lcd.print(battPercent);
+
+    if (battAverage <= 0 || battAverage < LOW_VOLTAGE) { //if battery voltage < threshold, it needs to be recharged
+      //give the robot a break when voltage drops after sprint
+      //adjust the thresholds according to your batteries' voltage
+      //if set too high, the robot will stop working when the battery still has power.
+      //If too low, the robot may not alarm before the battery shuts off
+      if (!safeRest) {
+        strcpy(lastCmd, "rest");
+        loadBySkillName(lastCmd);
+        shutServos();
+        safeRest = true;
+      }
+      M5.Lcd.setCursor(115, 100, 2);
+      M5.Lcd.print("LP Shutdown");
+      //PT("Low power: ");
+      //PT(voltage / vFactor);
+      //PTL("V");
+
+      //playMelody(melodyLowBattery, sizeof(melodyLowBattery) / 2);
+
+      //    strip.show();
+      //int8_t bStep = 1;
+      //for (byte brightness = 1; brightness > 0; brightness += bStep) {
+#ifdef NEOPIXEL_PIN
+        //strip.setPixelColor(0, strip.Color(brightness,   0,   0));
+        //strip.show();
+#endif
+#ifdef PWM_LED_PIN
+        //analogWrite(PWM_LED_PIN, 255 - brightness);
+#endif
+        //if (brightness == 255)
+        //  bStep = -1;
+        //delay(5);
+      //}
+      //lastVoltage = voltage;
+      return true; //indicate the battery is low
+    }
+    if (safeRest) {
+      strcpy(lastCmd, "rest");
+      loadBySkillName(lastCmd);
+      shutServos();
+      safeRest = false;
+    }
+    //lastVoltage = voltage;
+  }
+  return false; //battery is OK, so return false indicating no low battery
+}
+#else //BiBoard or BiBoard2
 float vFactor = 4096 / 3.3 / 3;
 float low_voltage = LOW_VOLTAGE * vFactor;
 bool lowBattery() {
@@ -62,7 +140,8 @@ bool lowBattery() {
   }
   return false;
 }
-#endif
+#endif //not MCORE2
+#endif //VOLTAGE
 
 void resetCmd() {
   //  PTL("lastT: " + String(lastToken) + "\tT: " + String(token) + "\tLastCmd: " + String(lastCmd) + "\tCmd: " + String(newCmd));
