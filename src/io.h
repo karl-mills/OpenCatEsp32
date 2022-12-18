@@ -218,24 +218,23 @@ void readSignal() {
       randomMind();//make the robot do random demos
   }
 }
-static int yPointerLcd;
+
 void printToken(char t = token) {
-  if (deviceConnected)
+  if (deviceConnected){
     bleWrite(String(t));
-  if (!confirmRequestPending)
+  }
+  if (!confirmRequestPending){
     SerialBT.println(t);
+  }
   PTL(t);
 #ifdef M5CORE2
-
-  if(yPointerLcd >= 240) {
-    yPointerLcd = 0;
-  }
-  M5.Lcd.setCursor(10,yPointerLcd);
-  M5.Lcd.print(t);
-  //Increment the y pointer to next line and clear the next line
-  yPointerLcd += 30;
-  M5.Lcd.setCursor(10,yPointerLcd);
-  M5.Lcd.print("    ");  
+  //Put latest command at top of LCD Screen
+  M5.Lcd.setCursor(10, 10);
+  M5.Lcd.print("Command: "); //Print Header
+  M5.Lcd.setCursor(100, 10);
+  M5.Lcd.print("         "); //Clear out old
+  M5.Lcd.setCursor(100, 10);
+  M5.Lcd.print(t);            //Print latest command
 #endif
 }
 //— read human sensors (top level) —

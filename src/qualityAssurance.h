@@ -106,8 +106,11 @@ void QA() {
   if (newBoard) {
 #ifndef AUTO_INIT
     PTL("Run factory quality assurance program? (Y/n)");
-    while (!Serial.available());
-    char choice = Serial.read();
+    char choice;
+    do{
+      while (!Serial.available());
+      choice = Serial.read();
+    } while(!(choice == 'y' || choice == 'Y' || choice == 'n' || choice == 'N'));
     PTL(choice);
     if (choice != 'Y' && choice != 'y')
       return;

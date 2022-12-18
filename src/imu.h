@@ -45,7 +45,7 @@
   ===============================================
 */
 
-
+#define M5USE6050 //defining this will include both the IMUs since the IMU6886 cannot be removed from M5Stack (will request update on GitHub to fix this)
 #ifdef M5CORE2 //Core2 uses the MPU6886 instead of the MPU6050
 
 
@@ -58,10 +58,35 @@
 //  proven out the intent will be to request a GitHub pull from the modified source to have M5Stack implement 
 //  the offset calibrations.  
 //
+
+#ifdef M5USE6050
+// I2Cdev and MPU6050 must be installed as libraries, or else the .cpp/.h files
+// for both classes must be in the include path of your project
+#include "mpu6050/src/I2Cdev.h"
+
+#include "mpu6050/src/MPU6050_6Axis_MotionApps_V6_12.h"
+
+// Arduino Wire library is required if I2Cdev I2CDEV_ARDUINO_WIRE implementation
+// is used in I2Cdev.h
+// for M5CORE2, this should not be necessary as it is already included.
+//#if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
+//#include "Wire.h"
+//#endif
+
+//#include "MPU6050.h" // not necessary if using MotionApps include file
+// class default I2C address is 0x68
+// specific I2C addresses may be passed as a parameter here
+// AD0 low = 0x68 (default for SparkFun breakout and InvenSense evaluation board)
+// AD0 high = 0x69
+//MPU6050 mpu;
+MPU6050 mpu(0x69); // <-- use for AD0 high since 0x68 conflicts with the IMU6886 on M5Stack Core2
+
+#else //Just using the MPU6886
 //  Below file is included to provide definitions for Vectors, Quaternions, etc.  
 //TODO: This could probably be removed and just include necessary definitions in future.
 //But, since it is already being used for the other OpenCat implementations, leave for now.
 #include "mpu6050/src/helper_3dmath.h"
+#endif
 
 // uncomment "OUTPUT_READABLE_YAWPITCHROLL" if you want to see the yaw/
 // pitch/roll angles (in degrees) calculated from the quaternions coming
@@ -160,8 +185,9 @@ MPU6050 mpu;
 // uncomment "OUTPUT_TEAPOT" if you want output that matches the
 // format used for the InvenSense teapot demo
 //#define OUTPUT_TEAPOT
-#endif
+#endif //BiBoard and BiBoard2
 
+//The below code is used by all implementations
 // MPU control/status vars
 bool dmpReady = false;  // set true if DMP init was successful
 uint8_t mpuIntStatus;   // holds actual interrupt status byte from MPU
@@ -175,14 +201,17 @@ Quaternion q;           // [w, x, y, z]         quaternion container
 VectorInt16 aa;         // [x, y, z]            accel sensor measurements
 VectorInt16 gy;         // [x, y, z]            gyro sensor measurements
 VectorInt16 aaReal;     // [x, y, z]            gravity-free accel sensor measurements
-VectorInt16 aaReal2;     // [x, y, z]            gravity-free accel sensor measurements
 VectorInt16 aaWorld;    // [x, y, z]            world-frame accel sensor measurements
 VectorFloat gravity;    // [x, y, z]            gravity vector
 float euler[3];         // [psi, theta, phi]    Euler angle container
 float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector. unit is radian
+#ifdef M5USE6050
+  float ypr6050[3];           //Second ypr for 6050 when using dual IMU
+  VectorInt16 aaReal6050;     // [x, y, z]            gravity-free accel sensor measurements for 6050 when dual IMU
+#endif
 int8_t yprTilt[3];
 #ifdef M5CORE2
-float yprCal[3] = {0.0, 0.0, 5.0};//For now do this basic cal for M5CORE2
+float yprCal[3] = {0.0, 0.0, 0.0};//For now do this basic cal for M5CORE2.  
 #endif 
 
 float originalYawDirection;
@@ -228,33 +257,55 @@ void print6Axis() {
 
 #ifdef OUTPUT_READABLE_YAWPITCHROLL
   // display angles in degrees
-  Serial.print("ypr\t");
+  Serial.print("ypr6886:\t");
   Serial.print(ypr[0]);
   Serial.print("\t");
   Serial.print(ypr[1]);
   Serial.print("\t");
-  Serial.print(ypr[2]);
-  Serial.print("\t");
+  Serial.println(ypr[2]);
   
 
-  M5.Lcd.setCursor(170,0);
-  M5.Lcd.print("      ");
-  M5.Lcd.setCursor(170,30);
-  M5.Lcd.print("      ");
-  M5.Lcd.setCursor(170,60);
-  M5.Lcd.print("      ");
-  M5.Lcd.setCursor(100,0);
+  Serial.print("ypr6050:\t");
+  Serial.print(ypr6050[0]);
+  Serial.print("\t");
+  Serial.print(ypr6050[1]);
+  Serial.print("\t");
+  Serial.println(ypr6050[2]);
+  
+  M5.Lcd.setCursor(120,120);
+  M5.Lcd.print("6886");
+  M5.Lcd.setCursor(220,120);
+  M5.Lcd.print("6050");
+
+
+  M5.Lcd.setCursor(120,150);
+  M5.Lcd.print("               ");
+  M5.Lcd.setCursor(120,180);
+  M5.Lcd.print("               ");
+  M5.Lcd.setCursor(120,210);
+  M5.Lcd.print("               ");
+
+  M5.Lcd.setCursor(50,150);
   M5.Lcd.print("Yaw: ");
-  M5.Lcd.setCursor(100,30);
-  M5.Lcd.print("Pch: ");
-  M5.Lcd.setCursor(100,60);
-  M5.Lcd.print("Roll");
-  M5.Lcd.setCursor(170,0);
+  M5.Lcd.setCursor(50,180);
+  M5.Lcd.print("Pitch: ");
+  M5.Lcd.setCursor(50,210);
+  M5.Lcd.print("Roll:");
+  
+  M5.Lcd.setCursor(120,150);
   M5.Lcd.print(ypr[0]);
-  M5.Lcd.setCursor(170,30);
+  M5.Lcd.setCursor(120,180);
   M5.Lcd.print(ypr[1]);
-  M5.Lcd.setCursor(170,60);
+  M5.Lcd.setCursor(120,210);
   M5.Lcd.print(ypr[2]);
+  
+  M5.Lcd.setCursor(220,150);
+  M5.Lcd.print(ypr6050[0]);
+  M5.Lcd.setCursor(220,180);
+  M5.Lcd.print(ypr6050[1]);
+  M5.Lcd.setCursor(220,210);
+  M5.Lcd.print(ypr6050[2]);
+
   /*
     mpu.dmpGetAccel(&aa, fifoBuffer);
     Serial.print("\tRaw Accl XYZ\t");
@@ -293,24 +344,24 @@ void print6Axis() {
   Serial.print("\t");
   Serial.print(aaReal.y);
   Serial.print("\t");
-  Serial.print("areal2\t");
-  Serial.print(aaReal2.x);
+  Serial.print("areal6050\t");
+  Serial.print(aaReal6050.x);
   Serial.print("\t");
-  Serial.print(aaReal2.y);
+  Serial.print(aaReal6050.y);
   Serial.print("\t");
 #endif
-  Serial.print("areal2.z\t");
-  Serial.print(aaReal2.z); //becomes negative when flipped
+  Serial.print("areal6050.z\t");
+  Serial.print(aaReal6050.z); //becomes negative when flipped
   Serial.print("\t");
 
   Serial.println();
 }
 
 bool read_IMU() {
-#ifdef M5CORE2 //uses 6886
-  int16_t accX = 0.0F;  // Define variables for storing inertial sensor data
-  int16_t accY = 0.0F;  //定义存储惯性传感器相关数据的相关变量
-  int16_t accZ = 0.0F;
+#ifdef M5CORE2 //uses 6886 or both IMUs
+  int16_t accX = 0;  // Define variables for storing inertial sensor data
+  int16_t accY = 0;  //定义存储惯性传感器相关数据的相关变量
+  int16_t accZ = 0;
 
   float gyroX = 0.0F;
   float gyroY = 0.0F;
@@ -351,11 +402,10 @@ bool read_IMU() {
   //aaReal.y = accY;
   //aaReal.z = accZ;
 
-  //Get the yaw, pitch and roll (TODO: grab directly into ypr variable)
-  //  Should be:
-  //  M5.IMU.getAhrsData(&ypr[0], &ypr[1], &ypr[2]);
-  //  Is this correct???
+  //Get the yaw, pitch and roll 
   M5.IMU.getAhrsData(&pitch, &roll, &yaw);  //Stores the inertial sensor attitude.
+  //Adjust polarity and add calibration for now  
+  //ypr always uses 6886 for now on M5CORE2
   ypr[0] = yaw + yprCal[0];
   ypr[1] = -pitch + yprCal[1];  //Only pitch is reversed from Bittle
   ypr[2] = roll + yprCal[2];
@@ -379,13 +429,34 @@ bool read_IMU() {
       //ypr[i] *= degPerRad;
   //}
 
+#ifdef M5USE6050
+  if (mpu.dmpGetCurrentFIFOPacket(fifoBuffer)) { // Get the Latest packet
+    // display Euler angles in degrees
+    mpu.dmpGetQuaternion(&q, fifoBuffer);
+    mpu.dmpGetAccel(&aa, fifoBuffer);
+    mpu.dmpGetEuler(euler, &q);
+    mpu.dmpGetGravity(&gravity, &q);
+    mpu.dmpGetYawPitchRoll(ypr6050, &q, &gravity);
+    mpu.dmpGetLinearAccel(&aaReal6050, &aa, &gravity);
+    mpu.dmpGetLinearAccelInWorld(&aaWorld, &aaReal6050, &q);
+    for (byte i = 0; i < 3; i++) {//no need to flip yaw  ???KSM strange comment, since yaw is being flipped
+      ypr6050[i] *= degPerRad;
+#ifdef BiBoard  //TODO: is this required for M5USE6050???
+      ypr6050[i] = -ypr6050[i];
+#endif //BiBoard    
+    }
+    ypr6050[2] = -ypr6050[2]; //Reverse the Roll Polarity
 
-  if (printGyro)
+#endif //M5USE6050
+  }
+  if (printGyro){
       print6Axis();
+  }      
+  //Exceptions always uses 6886 for now on M5CORE2
   exceptions = aaReal.z < 0 && fabs(ypr[2]) > 85; //the second condition is used to filter out some noise
   return true;
 
-#else //BiBoard or BiBoard2 use 6050
+#else //BiBoard or BiBoard2 use 6050 only
   if (mpu.dmpGetCurrentFIFOPacket(fifoBuffer)) { // Get the Latest packet
     // display Euler angles in degrees
     mpu.dmpGetQuaternion(&q, fifoBuffer);
@@ -400,8 +471,7 @@ bool read_IMU() {
 #ifdef BiBoard
       ypr[i] = -ypr[i];
 #endif
-
-    }
+    }    
     if (printGyro)
       print6Axis();
     exceptions = aaReal.z < 0 && fabs(ypr[2]) > 85; //the second condition is used to filter out some noise
@@ -418,7 +488,7 @@ bool read_IMU() {
 void imuSetup() {
 
 #ifdef M5CORE2
-//Match the setup of the MPU6050
+//Match the setup of the MPU6050???
 //M5.IMU.SetGyroFsr((MPU6886::GFS_2000DPS));//set to +/- 250 dps (default is 2000 dps)
 //M5.IMU.SetAccelFsr(MPU6886::AFS_16G);//set to +/- 2g (default is 8g)
 //Test the IMU offset calibration
@@ -452,8 +522,116 @@ void imuSetup() {
 //PT("Calibration Accelerometer Z: ");
 //PTL(calAccZ);
 
+#ifdef M5USE6050
+  int connectAttempt = 0;
+  do {
+    delay(500);
+    // initialize device
+    Serial.println(F("Initializing MPU..."));
+    mpu.initialize();
+    pinMode(INTERRUPT_PIN, INPUT);
+    // verify connection
+    Serial.print(F("- Testing MPU connections...attempt "));
+    Serial.println(connectAttempt++);
 
+  } while (!mpu.testConnection());
+  Serial.println(F("- MPU6050 connection successful"));
 
+  // load and configure the DMP
+  Serial.println(F("- Initializing DMP..."));
+  devStatus = mpu.dmpInitialize();
+  for (byte m = 0; m < 6; m++){
+    imuOffset[m] = i2c_eeprom_read_int16(EEPROM_IMU + m * 2);
+  }    
+  // supply the gyro offsets here, scaled for min sensitivity
+  mpu.setXAccelOffset(imuOffset[0]);
+  mpu.setYAccelOffset(imuOffset[1]);
+  mpu.setZAccelOffset(imuOffset[2]);  //gravity
+  mpu.setXGyroOffset(imuOffset[3]);   //yaw
+  mpu.setYGyroOffset(imuOffset[4]);   //pitch
+  mpu.setZGyroOffset(imuOffset[5]);   //roll
+
+  // make sure it worked (returns 0 if so)
+  if (devStatus == 0) {
+    // Calibration Time: generate offsets and calibrate our MPU6050
+    if (newBoard) {
+#ifndef AUTO_INIT
+      char choice;
+      PTL("- Calibrate the Inertial Measurement Unit (IMU)? (Y/n): ");
+      do {
+        while (!Serial.available());
+        choice = Serial.read();        
+      } while (!(choice == 'Y' || choice =='y' || choice == 'N' || choice == 'n'));
+
+      Serial.print("Choice is:");
+      Serial.println(choice);
+      
+      if (choice == 'Y' || choice == 'y') {
+#else
+      PTL("- Calibrate the Inertial Measurement Unit (IMU)...");
+#endif
+        PTLF("\nPut the robot FLAT on the table and don't touch it during calibration.");
+#ifndef AUTO_INIT
+        beep(8, 500, 500, 5);
+#endif
+        beep(15, 500, 500, 1);
+        mpu.CalibrateAccel(20);
+        mpu.CalibrateGyro(20);
+        i2c_eeprom_write_int16(EEPROM_IMU, mpu.getXAccelOffset());
+        i2c_eeprom_write_int16(EEPROM_IMU + 2, mpu.getYAccelOffset());
+        i2c_eeprom_write_int16(EEPROM_IMU + 4, mpu.getZAccelOffset());
+        i2c_eeprom_write_int16(EEPROM_IMU + 6, mpu.getXGyroOffset());
+        i2c_eeprom_write_int16(EEPROM_IMU + 8, mpu.getYGyroOffset());
+        i2c_eeprom_write_int16(EEPROM_IMU + 10, mpu.getZGyroOffset());
+
+        //Serial.println("Calibration:");
+        //Serial.print(mpu.getXAccelOffset());
+        //Serial.print(":");        
+        //Serial.print(mpu.getYAccelOffset());
+        //Serial.print(":");        
+        //Serial.print(mpu.getZAccelOffset());
+        //Serial.print(":");        
+        //Serial.print(mpu.getXGyroOffset());
+        //Serial.print(":");        
+        //Serial.print(mpu.getYGyroOffset());
+        //Serial.print(":");
+        //Serial.print(mpu.getZGyroOffset());
+        //Serial.print(":");
+                
+#ifndef AUTO_INIT
+      }
+#endif
+      beep(18, 50, 50, 6);
+      mpu.PrintActiveOffsets();
+    }
+    // turn on the DMP, now that it's ready
+    Serial.println(F("- Enabling DMP..."));
+    mpu.setDMPEnabled(true);
+
+    // enable Arduino interrupt detection
+    Serial.print(F("- Enabling interrupt detection (Arduino external interrupt "));
+    Serial.print(digitalPinToInterrupt(INTERRUPT_PIN));
+    Serial.println(F(")..."));
+    attachInterrupt(digitalPinToInterrupt(INTERRUPT_PIN), dmpDataReady, RISING);
+    mpuIntStatus = mpu.getIntStatus();
+
+    // set our DMP Ready flag so the main loop() function knows it's okay to use it
+    Serial.println(F("- DMP ready! Waiting for the first interrupt..."));
+    dmpReady = true; //TODO: Can this go inside the M5USE6050?  May need this set for 6886 anyway 
+    // get expected DMP packet size for later comparison
+    packetSize = mpu.dmpGetFIFOPacketSize();
+  } else {
+    // ERROR!
+    // 1 = initial memory load failed
+    // 2 = DMP configuration updates failed
+    // (if it's going to break, usually the code will be 1)
+    Serial.print(F("- DMP Initialization failed (code "));
+    Serial.print(devStatus);
+    Serial.println(F(")"));
+  }
+#else //not M5USE6050
+    dmpReady = true; //TODO: Does this need to be true if 6886 only is used???
+#endif //M5USE6050
 
 #else //not M5CORE2
   // join I2C bus (I2Cdev library doesn't do this automatically)
@@ -507,19 +685,19 @@ void imuSetup() {
   if (devStatus == 0) {
     // Calibration Time: generate offsets and calibrate our MPU6050
     if (newBoard) {
-#ifndef AUTO_INIT
+#ifndef AUTO_INIT //Not AUTO_INIT
       PTL("- Calibrate the Inertial Measurement Unit (IMU)? (Y/n): ");
       while (!Serial.available());
       char choice = Serial.read();
       Serial.println(choice);
       if (choice == 'Y' || choice == 'y') {
-#else
+#else //AUTO_INIT
       PTL("- Calibrate the Inertial Measurement Unit (IMU)...");
-#endif
+#endif //end AUTO_INIT
         PTLF("\nPut the robot FLAT on the table and don't touch it during calibration.");
-#ifndef AUTO_INIT
+#ifndef AUTO_INIT //Not AUTO_INIT
         beep(8, 500, 500, 5);
-#endif
+#endif  //end Not AUTO_INIT
         beep(15, 500, 500, 1);
         mpu.CalibrateAccel(20);
         mpu.CalibrateGyro(20);
@@ -529,9 +707,9 @@ void imuSetup() {
         i2c_eeprom_write_int16(EEPROM_IMU + 6, mpu.getXGyroOffset());
         i2c_eeprom_write_int16(EEPROM_IMU + 8, mpu.getYGyroOffset());
         i2c_eeprom_write_int16(EEPROM_IMU + 10, mpu.getZGyroOffset());
-#ifndef AUTO_INIT
+#ifndef AUTO_INIT //Not AUTO_INIT
       }
-#endif
+#endif //End Not AUTO_INIT
       beep(18, 50, 50, 6);
       mpu.PrintActiveOffsets();
     }
@@ -548,12 +726,8 @@ void imuSetup() {
 
     // set our DMP Ready flag so the main loop() function knows it's okay to use it
     Serial.println(F("- DMP ready! Waiting for the first interrupt..."));
-#endif //Not M5CORE2
-  
     dmpReady = true;
-#ifdef M5CORE2
-
-#else
+    
     // get expected DMP packet size for later comparison
     packetSize = mpu.dmpGetFIFOPacketSize();
   } else {
@@ -570,6 +744,7 @@ void imuSetup() {
   delay(10);
   read_IMU();
   exceptions = aaReal.z < 0;
+  //For now using 6886 Yaw
   originalYawDirection = ypr[0];
 }
 

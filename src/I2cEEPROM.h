@@ -166,7 +166,10 @@ void i2c_eeprom_write_int16(unsigned int eeaddress, int16_t p_value)
 int16_t i2c_eeprom_read_int16(unsigned int eeaddress)
 {
 #ifdef M5CORE2
-  return(EEPROM.readShort(eeaddress));
+  int16_t dataRead = EEPROM.readShort(eeaddress);
+  //Serial.print("Read Short:");
+  //Serial.println(dataRead);  
+  return(dataRead);
 #else
   Wire.beginTransmission(DEVICE_ADDRESS);
   Wire.write((int)(eeaddress >> 8)); // MSB
