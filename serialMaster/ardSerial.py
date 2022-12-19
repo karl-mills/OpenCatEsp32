@@ -13,14 +13,14 @@ import os
 
 FORMAT = '%(asctime)-15s %(name)s - %(levelname)s - %(message)s'
 '''
-Level: The level determines the minimum priority level of messages to log. 
-Messages will be logged in order of increasing severity: 
-DEBUG is the least threatening, 
-INFO is also not very threatening, 
-WARNING needs attention, 
-ERROR needs immediate attention, 
-and CRITICAL means “drop everything and find out what’s wrong.” 
-The default starting point is INFO, 
+Level: The level determines the minimum priority level of messages to log.
+Messages will be logged in order of increasing severity:
+DEBUG is the least threatening,
+INFO is also not very threatening,
+WARNING needs attention,
+ERROR needs immediate attention,
+and CRITICAL means “drop everything and find out what’s wrong.”
+The default starting point is INFO,
 which means that the logging module will automatically filter out any DEBUG messages.
 '''
 # logging.basicConfig(level=logging.DEBUG, format=FORMAT)
@@ -53,7 +53,7 @@ def serialWriteNumToByte(port, token, var=None):  # Only to be used for c m u b 
             skillHeader = 4
         else:
             skillHeader = 7
-            
+
         if period > 1:
             frameSize = 8  # gait
         elif period == 1:
@@ -69,14 +69,14 @@ def serialWriteNumToByte(port, token, var=None):  # Only to be used for c m u b 
                     break
             if angleRatio ==2:
                 break
-        
+
         if angleRatio == 2:
             var[3] = 2
             for row in range(abs(period)):
                 for i in range(skillHeader + row * frameSize,skillHeader + row * frameSize + min(16,frameSize)):
                     var[i] //=2
             printH('rescaled:\n',var)
-            
+
         var = list(map(int, var))
 
         in_str = token.encode() + struct.pack('b' * skillHeader, *var[0:skillHeader])  # +'~'.encode()
@@ -97,7 +97,7 @@ def serialWriteNumToByte(port, token, var=None):  # Only to be used for c m u b 
 #            else:
 #                packType = 'b'
             var = list(map(int, var))
-            
+
             in_str = token.encode() + struct.pack('b' * len(var), *var) + '~'.encode()
 
         elif token == 'c' or token == 'm' or token == 'i' or token == 'b' or token == 'u' or token == 't':
@@ -174,8 +174,8 @@ def sendTask(goodPorts, port, task, timeout=0):  # task Structure is [token, var
             if previousBuffer:
                 printH('Previous buffer:', previousBuffer)
             if len(task) == 2:
-                #        print('a')
-                #        print(task[0])
+                #       print('a')
+                #       print(task[0])
                 serialWriteByte(port, [task[0]])
             elif isinstance(task[1][0], int):
                 #        print('b')
@@ -468,7 +468,9 @@ def testPort(goodPorts, serialObject, p):
             time.sleep(2)
             waitTime = 3
         else:
-            waitTime = 1
+            #waitTime = 1
+            waitTime = 3
+        print("Sending b to device")
         result = sendTask(goodPorts, serialObject, ['b', [20, 50], 0], waitTime)
         print(result)
         if result != -1:
