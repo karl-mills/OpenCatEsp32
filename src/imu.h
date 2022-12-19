@@ -212,6 +212,7 @@ float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gra
 int8_t yprTilt[3];
 #ifdef M5CORE2
 float yprCal[3] = {0.0, 0.0, 0.0};//For now do this basic cal for M5CORE2.  
+float ypr6886[3];
 #endif 
 
 float originalYawDirection;
@@ -258,11 +259,11 @@ void print6Axis() {
 #ifdef OUTPUT_READABLE_YAWPITCHROLL
   // display angles in degrees
   Serial.print("ypr6886:\t");
-  Serial.print(ypr[0]);
+  Serial.print(ypr6886[0]);
   Serial.print("\t");
-  Serial.print(ypr[1]);
+  Serial.print(ypr6886[1]);
   Serial.print("\t");
-  Serial.println(ypr[2]);
+  Serial.println(ypr6886[2]);
   
 
   Serial.print("ypr6050:\t");
@@ -272,39 +273,48 @@ void print6Axis() {
   Serial.print("\t");
   Serial.println(ypr6050[2]);
   
-  M5.Lcd.setCursor(120,120);
+  M5.Lcd.setCursor(25,120);
   M5.Lcd.print("6886");
-  M5.Lcd.setCursor(220,120);
+  M5.Lcd.setCursor(125,120);
   M5.Lcd.print("6050");
+  M5.Lcd.setCursor(225,120);
+  M5.Lcd.print("Delta");
 
 
-  M5.Lcd.setCursor(120,150);
-  M5.Lcd.print("               ");
-  M5.Lcd.setCursor(120,180);
-  M5.Lcd.print("               ");
-  M5.Lcd.setCursor(120,210);
-  M5.Lcd.print("               ");
+  M5.Lcd.setCursor(25,150);
+  M5.Lcd.print("                     ");
+  M5.Lcd.setCursor(25,180);
+  M5.Lcd.print("                     ");
+  M5.Lcd.setCursor(25,210);
+  M5.Lcd.print("                     ");
 
-  M5.Lcd.setCursor(50,150);
-  M5.Lcd.print("Yaw: ");
-  M5.Lcd.setCursor(50,180);
-  M5.Lcd.print("Pitch: ");
-  M5.Lcd.setCursor(50,210);
-  M5.Lcd.print("Roll:");
+  M5.Lcd.setCursor(0,150);
+  M5.Lcd.print("Y: ");
+  M5.Lcd.setCursor(0,180);
+  M5.Lcd.print("P: ");
+  M5.Lcd.setCursor(0,210);
+  M5.Lcd.print("R:");
   
-  M5.Lcd.setCursor(120,150);
-  M5.Lcd.print(ypr[0]);
-  M5.Lcd.setCursor(120,180);
-  M5.Lcd.print(ypr[1]);
-  M5.Lcd.setCursor(120,210);
-  M5.Lcd.print(ypr[2]);
+  M5.Lcd.setCursor(25,150);
+  M5.Lcd.print(ypr6886[0]);
+  M5.Lcd.setCursor(25,180);
+  M5.Lcd.print(ypr6886[1]);
+  M5.Lcd.setCursor(25,210);
+  M5.Lcd.print(ypr6886[2]);
   
-  M5.Lcd.setCursor(220,150);
+  M5.Lcd.setCursor(125,150);
   M5.Lcd.print(ypr6050[0]);
-  M5.Lcd.setCursor(220,180);
+  M5.Lcd.setCursor(125,180);
   M5.Lcd.print(ypr6050[1]);
-  M5.Lcd.setCursor(220,210);
+  M5.Lcd.setCursor(125,210);
   M5.Lcd.print(ypr6050[2]);
+
+  M5.Lcd.setCursor(225,150);
+  M5.Lcd.print(ypr6886[0]-ypr6050[0]);
+  M5.Lcd.setCursor(225,180);
+  M5.Lcd.print(ypr6886[1]-ypr6050[1]);
+  M5.Lcd.setCursor(225,210);
+  M5.Lcd.print(ypr6886[2]-ypr6050[2]);
 
   /*
     mpu.dmpGetAccel(&aa, fifoBuffer);
@@ -405,10 +415,9 @@ bool read_IMU() {
   //Get the yaw, pitch and roll 
   M5.IMU.getAhrsData(&pitch, &roll, &yaw);  //Stores the inertial sensor attitude.
   //Adjust polarity and add calibration for now  
-  //ypr always uses 6886 for now on M5CORE2
-  ypr[0] = yaw + yprCal[0];
-  ypr[1] = -pitch + yprCal[1];  //Only pitch is reversed from Bittle
-  ypr[2] = roll + yprCal[2];
+  ypr6886[0] = yaw + yprCal[0];
+  ypr6886[1] = -pitch + yprCal[1];  //Only pitch is reversed from Bittle
+  ypr6886[2] = roll + yprCal[2];
 
   
   //PTL("Core2 YPR Data");
@@ -441,14 +450,19 @@ bool read_IMU() {
     mpu.dmpGetLinearAccelInWorld(&aaWorld, &aaReal6050, &q);
     for (byte i = 0; i < 3; i++) {//no need to flip yaw  ???KSM strange comment, since yaw is being flipped
       ypr6050[i] *= degPerRad;
-#ifdef BiBoard  //TODO: is this required for M5USE6050???
+#ifdef BiBoard  
       ypr6050[i] = -ypr6050[i];
-#endif //BiBoard    
+#endif //BiBoard 
+      ypr[i]= ypr6050[i];   
     }
-    ypr6050[2] = -ypr6050[2]; //Reverse the Roll Polarity
-
-#endif //M5USE6050
   }
+#else
+      ypr[0]= ypr6886[0];   
+      ypr[1]= ypr6886[1];   
+      ypr[2]= ypr6886[2];   
+
+#endif //M5USE6050  
+  
   if (printGyro){
       print6Axis();
   }      

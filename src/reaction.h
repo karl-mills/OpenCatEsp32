@@ -24,7 +24,7 @@ void dealWithExceptions() {
     battAverage = ((battAverage*9.0)+battValue)/10;  //Average the last 10 readings.
     float battPercent = (battAverage - LOW_VOLTAGE)*100.0/(HIGH_VOLTAGE-LOW_VOLTAGE);
     //Send battery volatage and percent to the screen
-    M5.Lcd.setCursor(115, 50, 2);
+    M5.Lcd.setCursor(115, 50);
     //Set Color of text to green if battery has more than 10%, otherwise make it red
     if(battPercent >= 10.0){  
       M5.Lcd.setTextColor(TFT_GREEN, TFT_BLACK);
@@ -33,12 +33,12 @@ void dealWithExceptions() {
       M5.Lcd.setTextColor(TFT_RED, TFT_BLACK);
     }  
     M5.Lcd.print("             ");
-    M5.Lcd.setCursor(115, 50, 2);
+    M5.Lcd.setCursor(115, 50);
     M5.Lcd.print("V=");
     M5.Lcd.print(battAverage);
-    M5.Lcd.setCursor(115, 75, 2);
+    M5.Lcd.setCursor(115, 75);
     M5.Lcd.print("             ");
-    M5.Lcd.setCursor(115, 75, 2);
+    M5.Lcd.setCursor(115, 75);
     M5.Lcd.print("%=");
     M5.Lcd.print(battPercent);
 
@@ -53,7 +53,7 @@ void dealWithExceptions() {
         shutServos();
         safeRest = true;
       }
-      M5.Lcd.setCursor(115, 100, 2);
+      M5.Lcd.setCursor(115, 100);
       M5.Lcd.print("LP Shutdown");
       //PT("Low power: ");
       //PT(voltage / vFactor);

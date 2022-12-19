@@ -231,9 +231,9 @@ void printToken(char t = token) {
   //Put latest command at top of LCD Screen
   M5.Lcd.setCursor(10, 10);
   M5.Lcd.print("Command: "); //Print Header
-  M5.Lcd.setCursor(100, 10);
+  M5.Lcd.setCursor(130, 10);
   M5.Lcd.print("         "); //Clear out old
-  M5.Lcd.setCursor(100, 10);
+  M5.Lcd.setCursor(130, 10);
   M5.Lcd.print(t);            //Print latest command
 #endif
 }
